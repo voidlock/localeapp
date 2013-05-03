@@ -28,11 +28,29 @@ end
 describe Localeapp::CLI::Daemon, "#do_update" do
   let(:output) { StringIO.new }
   let(:command) { Localeapp::CLI::Daemon.new(:output => output) }
+  let(:poller) { Localeapp::Poller.new }
 
-  it "creates and executes and Updater" do
-    stub = stub(:updater)
-    stub.should_receive(:execute)
-    Localeapp::CLI::Update.should_receive(:new).and_return(stub)
+  it "use configured poller" do
+    poller.should_receive(:poll!)
+    Localeapp.should_receive(:poller).and_return(poller)
+
+    command.do_update
+  end
+
+  it "should not reset configuration" do
+    defaults = Localeapp.configure
+    poller.should_receive(:poll!)
+    Localeapp.should_receive(:configure).once.and_return(defaults)
+    Localeapp.stub!(:poller).and_return(poller)
+
+    command.do_update
+  end
+
+  it "update the poller.updated_at time" do
+    poller.should_receive(:poll!).and_return(true)
+    poller.should_receive(:read_synchronization_data!)
+
+    Localeapp.stub!(:poller).and_return(poller)
     command.do_update
   end
 end

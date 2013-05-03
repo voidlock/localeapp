@@ -5,7 +5,7 @@ require 'time'
 module Localeapp
   class Poller
     include ::Localeapp::ApiCall
-    
+
     # when we last asked the service for updates
     attr_accessor :polled_at
 
@@ -13,8 +13,7 @@ module Localeapp
     attr_accessor :updated_at
 
     def initialize
-      @polled_at  = synchronization_data[:polled_at]  || 0
-      @updated_at = synchronization_data[:updated_at] || 0
+      read_synchronization_data!
     end
 
     def synchronization_data
@@ -30,6 +29,12 @@ module Localeapp
         f.write({:polled_at => polled_at.to_i, :updated_at => updated_at.to_i}.to_yaml)
       end
     end
+
+    def read_synchronization_data!
+      @polled_at  = synchronization_data[:polled_at]  || 0
+      @updated_at = synchronization_data[:updated_at] || 0
+    end
+
 
     def needs_polling?
       synchronization_data[:polled_at] < (Time.now.to_i - Localeapp.configuration.poll_interval)
