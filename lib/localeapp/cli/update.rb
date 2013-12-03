@@ -9,7 +9,6 @@ module Localeapp
         poller = Localeapp.poller
         @output.puts("Localeapp update: checking for translations since #{poller.updated_at}")
         if poller.poll!
-          poller.read_synchronization_data!
           @output.puts "Found and updated new translations"
         else
           @output.puts "No new translations"

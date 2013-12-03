@@ -55,6 +55,9 @@ module Localeapp
       end
 
       def write_pid_file
+        pid_file = Localeapp.configuration.daemon_pid_file
+        pid_file_dir = File.dirname(pid_file)
+        FileUtils.mkdir_p(pid_file_dir)
         File.open(Localeapp.configuration.daemon_pid_file, 'w') {|f| f << self.pid}
       end
 

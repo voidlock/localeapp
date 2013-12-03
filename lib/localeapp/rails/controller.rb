@@ -7,6 +7,7 @@ module Localeapp
       end
 
       def handle_translation_updates
+        raise Localeapp::MissingApiKey unless ::Localeapp.configuration.api_key
         unless ::Localeapp.configuration.polling_disabled?
           ::Localeapp.log_with_time 'Handling translation updates'
           if ::Localeapp.poller.needs_polling?
@@ -19,7 +20,7 @@ module Localeapp
           if ::Localeapp.poller.needs_reloading?
             ::Localeapp.log_with_time 'reloading I18n'
             I18n.reload!
-            ::Localeapp.poller.read_synchronization_data!
+            ::Localeapp.poller.updated_at = ::Localeapp.poller.synchronization_data[:updated_at]
           end
         end
       end
