@@ -7,11 +7,10 @@ describe Localeapp::CLI::Update, "#execute" do
     @updater = Localeapp::CLI::Update.new(:output => @output)
   end
 
-  it "creates a Poller and calls poll! on it" do
+  it "uses configured poller" do
     with_configuration do
-      poller = Localeapp::Poller.new
-      poller.should_receive(:poll!)
-      Localeapp::Poller.should_receive(:new).and_return(poller)
+      Localeapp::Poller.should_not_receive(:new)
+      Localeapp.poller.should_receive(:poll!)
       @updater.execute
     end
   end

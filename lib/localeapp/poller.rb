@@ -5,7 +5,7 @@ require 'time'
 module Localeapp
   class Poller
     include ::Localeapp::ApiCall
-    
+
     # when we last asked the service for updates
     attr_accessor :polled_at
 

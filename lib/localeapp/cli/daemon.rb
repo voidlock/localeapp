@@ -1,6 +1,6 @@
 module Localeapp
   module CLI
-    class Daemon < Command
+    class Daemon < Update
       def execute(options)
         interval = options[:interval].to_i
 
@@ -8,35 +8,30 @@ module Localeapp
           exit_now! "interval must be a positive integer greater than 0", 1
         end
 
-        if options[:background]
-          run_in_background(interval)
-        else
-          update_loop(interval)
-        end
+        startup(options[:background])
+        update_loop(interval)
       end
 
       def update_loop(interval)
-        loop do
+        until @shutdown
           do_update
           sleep interval
         end
       end
 
-      def do_update
-        Localeapp::CLI::Update.new.execute
+      def startup(background)
+        if background
+          daemonize
+          write_pid_file
+          STDOUT.reopen(File.open(Localeapp.configuration.daemon_log_file, 'a'))
+        end
+        enable_gc_optimizations
+        register_signal_handlers
+        STDOUT.sync = true
       end
 
-      def run_in_background(interval)
-        kill_existing
-
-        STDOUT.reopen(File.open(Localeapp.configuration.daemon_log_file, 'a'))
-        pid = fork do
-          Signal.trap('HUP', 'IGNORE')
-          update_loop(interval)
-        end
-        Process.detach(pid)
-
-        File.open(Localeapp.configuration.daemon_pid_file, 'w') {|f| f << pid}
+      def pid
+        @pid ||= Process.pid
       end
 
       def kill_existing
@@ -48,6 +43,47 @@ module Localeapp
             File.delete(Localeapp.configuration.daemon_pid_file)
           end
         end
+      end
+
+      def daemonize
+        kill_existing
+        if Process.respond_to?(:daemon)
+          Process.daemon(true, true)
+        else
+          Kernel.warn "Running process as daemon requires ruby >= 1.9"
+        end
+      end
+
+      def write_pid_file
+        pid_file = Localeapp.configuration.daemon_pid_file
+        pid_file_dir = File.dirname(pid_file)
+        FileUtils.mkdir_p(pid_file_dir)
+        File.open(Localeapp.configuration.daemon_pid_file, 'w') {|f| f << self.pid}
+      end
+
+      def enable_gc_optimizations
+        if GC.respond_to?(:copy_on_write_friendly=)
+          GC.copy_on_write_friendly = true
+        end
+      end
+
+      def register_signal_handlers
+        trap('QUIT') { shutdown! }
+        trap('TERM') { shutdown! }
+        trap('INT') { shutdown! }
+        trap('HUP', 'IGNORE')
+      end
+
+      def unregister_signal_handlers
+        trap('QUIT', 'DEFAULT')
+        trap('TERM', 'DEFAULT')
+        trap('INT', 'DEFAULT')
+        trap('HUP', 'IGNORE')
+      end
+
+      def shutdown!
+        STDOUT.flush
+        @shutdown = true
       end
     end
   end

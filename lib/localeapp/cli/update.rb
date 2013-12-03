@@ -2,7 +2,11 @@ module Localeapp
   module CLI
     class Update < Command
       def execute
-        poller = Localeapp::Poller.new
+        do_update
+      end
+
+      def do_update
+        poller = Localeapp.poller
         @output.puts("Localeapp update: checking for translations since #{poller.updated_at}")
         if poller.poll!
           @output.puts "Found and updated new translations"
